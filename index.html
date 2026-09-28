@@ -1,127 +1,307 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Английские карточки</title><style>*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#b4ecfa,#e9dcff 60%,#fff1af);color:#283451;font-family:Arial,sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:18px}.screen{width:min(700px,100%);text-align:center}.panel,.card{background:#fffdf8;border:5px solid white;border-radius:30px;padding:clamp(20px,5vw,38px);box-shadow:0 14px 35px #53508838}h1{color:#6041c7;font-size:clamp(2rem,7vw,3.4rem)}h2{font-size:clamp(1.5rem,5vw,2.4rem)}p{line-height:1.5;font-size:1.2rem}.art{font-size:5rem}button{border:0;border-radius:17px;color:white;font-size:1.15rem;font-weight:bold;padding:16px 20px;cursor:pointer;background:#7355d9;box-shadow:0 5px 0 #0002}button:hover{filter:brightness(1.08)}button:active{transform:translateY(3px);box-shadow:0 2px 0 #0002}.options,.actions,.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px auto;max-width:530px}.options button{background:#f49b54}.yes,.good{background:#29b980}.no,.bad{background:#f26c78}.hidden{display:none!important}.card{min-height:330px;display:grid;align-content:center;justify-items:center}.picture{font-size:clamp(5rem,18vw,9rem);line-height:1.15;max-width:100%;overflow-wrap:anywhere}.picture.text-picture{font-size:clamp(1.5rem,5vw,2.3rem);font-weight:700;background:#eee9ff;border-radius:20px;padding:18px;margin:8px}.word{font-size:clamp(2.6rem,10vw,5rem);font-weight:900;color:#6041c7;overflow-wrap:anywhere}.ipa{font-size:1.5rem;color:#56677b;margin:9px}.translation{margin-top:15px;padding:14px;background:#e8ffdb;border-radius:14px;font-weight:bold;font-size:1.6rem}.progress{font-weight:bold;font-size:1.1rem;margin-bottom:16px}.track{height:14px;border-radius:10px;background:white;margin:10px 0;overflow:hidden}.fill{height:100%;background:#3fc88f;width:0}.stat{padding:15px;border-radius:18px;color:white;font-size:1.3rem}.stat b{display:block;font-size:3rem}.review{text-align:left;max-height:220px;overflow:auto;padding:10px 20px;background:#fff;border-radius:16px}.review li{margin:8px 0}#fireworks{position:fixed;inset:0;pointer-events:none;overflow:hidden}.spark{position:absolute;width:10px;height:10px;border-radius:50%;animation:burst 1.3s ease-out forwards}@keyframes burst{to{transform:translate(var(--x),var(--y));opacity:0}}@media(max-width:380px){button{font-size:1rem;padding:13px 8px}}</style></head><body><div id="fireworks"></div><main><section id="welcome" class="screen panel"><div class="art">🌈🚀</div><h1>Привет, юный знаток!</h1><p>Сначала попробуй вспомнить английское слово. Картинка и перевод появятся только после ответа!</p><button id="start">Вперед!</button></section><section id="select" class="screen panel hidden"><div class="art">🃏✨</div><h2>Сколько слов в раунде?</h2><div class="options"><button data-size="10">10 слов</button><button data-size="15">15 слов</button><button data-size="20">20 слов</button><button data-size="25">25 слов</button></div></section><section id="game" class="screen hidden"><div class="progress" id="counter"></div><div class="track"><div class="fill" id="fill"></div></div><article class="card"><div id="image" class="picture hidden" aria-hidden="true"></div><div id="word" class="word"></div><div id="ipa" class="ipa"></div><div id="translation" class="translation hidden" aria-live="polite"></div></article><div class="actions" id="answerButtons"><button id="yes" class="yes">Я знаю!</button><button id="no" class="no">Не помню</button></div><div class="actions hidden" id="continueButtons" style="display:block"><button id="next">Следующее слово →</button></div></section><section id="result" class="screen panel hidden"><div id="badge" class="art"></div><h1 id="title"></h1><p id="message"></p><div class="stats"><div class="stat good"><b id="known"></b>Знаю</div><div class="stat bad"><b id="unknown"></b>Повторить</div></div><div id="review" class="review hidden"><h2>Слова для повторения</h2><ul id="list"></ul></div><button id="again">Играть ещё раз</button></section></main><script>
-// Формат: английское слово | транскрипция | перевод | иллюстрация после ответа.
-// Для слов, которые нельзя однозначно изобразить одним эмодзи, используется понятная подпись-пример.
-const raw=`boy|bɔɪ|мальчик|👦
-girl|ɡɜːl|девочка|👧
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Английские карточки</title>
+<style>
+:root{--ink:#253653;--purple:#6c4fd3;--green:#20b676;--red:#ed6374;--gold:#ffb84d}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--ink);font-family:"Trebuchet MS",Arial,sans-serif;background:linear-gradient(145deg,#b7efff,#eadcff 55%,#fff3b1)}
+#app{min-height:100vh;display:grid;place-items:center;padding:18px}.screen{width:min(760px,100%);text-align:center}.panel,.card{background:#fffdf8eF;border:5px solid #fff;border-radius:30px;padding:clamp(20px,5vw,38px);box-shadow:0 14px 34px #453d6934}h1{color:var(--purple);font-size:clamp(2.2rem,7vw,4rem);margin:8px 0 14px}h2{font-size:clamp(1.6rem,5vw,2.5rem)}p{font-size:clamp(1.05rem,3vw,1.25rem);line-height:1.5}.art{font-size:clamp(4rem,12vw,7rem);margin:4px}button{border:0;border-radius:18px;padding:16px 22px;color:#fff;background:var(--purple);font:800 1.1rem inherit;cursor:pointer;box-shadow:0 5px 0 #0002;transition:.15s}button:hover{filter:brightness(1.08);transform:translateY(-2px)}button:active{transform:translateY(3px);box-shadow:0 2px 0 #0002}.hidden{display:none!important}.choices,.actions,.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:560px;margin:20px auto}.choice{background:#f49a53}.card{min-height:340px;display:grid;align-content:center;justify-items:center}.word{font-size:clamp(2.45rem,10vw,5rem);font-weight:900;line-height:1.05;color:var(--purple);overflow-wrap:anywhere}.ipa{font-size:clamp(1.2rem,4vw,1.65rem);color:#607087;margin:12px}.answer{margin-top:18px;padding:14px 18px;border-radius:17px;background:#e7ffda;font-weight:800;font-size:clamp(1.35rem,5vw,1.85rem)}.illustration{font-size:clamp(4rem,14vw,8rem);line-height:1.1;margin:5px}.progress{font-weight:800;font-size:1.1rem;margin-bottom:10px}.track{height:14px;border:2px solid white;background:#ffffff91;border-radius:99px;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,#36cd90,#ffd450);width:0;transition:.25s}.yes{background:var(--green)}.no{background:var(--red)}.stat{border-radius:18px;padding:16px;color:white;font-size:1.2rem}.stat b{display:block;font-size:3rem}.known{background:var(--green)}.unknown{background:var(--red)}.review{text-align:left;background:#fff;border-radius:16px;padding:12px 22px;max-height:220px;overflow:auto}.review li{margin:8px 0}#fireworks{position:fixed;inset:0;pointer-events:none;overflow:hidden}.spark{position:absolute;width:10px;height:10px;border-radius:50%;animation:burst 1.25s ease-out forwards}@keyframes burst{to{transform:translate(var(--x),var(--y));opacity:0}}@media(max-width:390px){button{font-size:1rem;padding:14px 8px}.card{min-height:300px}}
+</style>
+</head>
+<body>
+<div id="fireworks"></div>
+<main id="app">
+<section id="welcome" class="screen panel"><div class="art">🌈🚀</div><h1>Привет, юный знаток!</h1><p>Сначала вспомни значение английского слова. После ответа откроется перевод и картинка.</p><button id="start">Вперёд!</button></section>
+<section id="select" class="screen panel hidden"><div class="art">🃏✨</div><h2>Сколько слов будет в раунде?</h2><div class="choices"><button class="choice" data-size="10">10 слов</button><button class="choice" data-size="15">15 слов</button><button class="choice" data-size="20">20 слов</button><button class="choice" data-size="25">25 слов</button></div></section>
+<section id="game" class="screen hidden"><div id="counter" class="progress"></div><div class="track"><div id="fill" class="fill"></div></div><article class="card"><div id="word" class="word"></div><div id="ipa" class="ipa"></div><div id="illustration" class="illustration hidden" aria-hidden="true"></div><div id="answer" class="answer hidden"></div></article><div id="answers" class="actions"><button id="yes" class="yes">Я знаю! 👍</button><button id="no" class="no">Не помню 🤔</button></div><div id="continue" class="hidden"><button id="next">Следующее слово →</button></div></section>
+<section id="result" class="screen panel hidden"><div id="badge" class="art"></div><h1 id="title"></h1><p id="message"></p><div class="stats"><div class="stat known"><b id="knownCount"></b>Знаю</div><div class="stat unknown"><b id="unknownCount"></b>Повторить</div></div><div id="review" class="review hidden"><h2>Повтори эти слова</h2><ul id="reviewList"></ul></div><button id="again">Играть ещё раз 🔄</button></section>
+</main>
+<script>
+/*
+  Словарь перенесён из прикреплённого PDF без изменения английских слов и русских переводов.
+  Поля: English | transcription (если есть в PDF) | Russian | emoji after answer
+*/
+const raw = `boy|bɔɪ|мальчик|👦
+girl|ɡɜ:rl|девочка|👧
 friend|frend|друг|🧑‍🤝‍🧑
-teacher|ˈtiːtʃə|учитель|👩‍🏫
-big|bɪɡ|большой|Большой мяч: ⚽⚽⚽
-small|smɔːl|маленький|Маленький мяч: ⚽
-tall|tɔːl|высокий|Высокое дерево: 🌲⬆️
-funny|ˈfʌni|смешной|Шутка → 😄
-boots|buːts|ботинки|👢
+teacher|ˈti:tʃər|учитель|👩‍🏫
+big|bɪɡ|большой|⬆️
+small|smɔ:l|маленький|⬇️
+tall|tɔ:l|высокий|📏⬆️
+funny|ˈfʌnɪ|смешной, забавный|😄
+boots|bu:ts|ботинки|👢
 box|bɒks|коробка|📦
 mouse|maʊs|мышь|🐭
-toys|tɔɪz|игрушки|🧸🪀
+toys|tɔɪz|игрушки|🧸
 bag|bæɡ|сумка|👜
 book|bʊk|книга|📖
-glue|ɡluː|клей|Клей: 🧴
+glue|ɡlu:|клей|🧴
 pen|pen|ручка|🖊️
-pencil|ˈpensl|карандаш|✏️
-pencil case|ˈpensl keɪs|пенал|Пенал для карандашей
-rubber|ˈrʌbə|ластик|Ластик стирает карандаш
-ruler|ˈruːlə|линейка|📏
-old|əʊld|старый|Старая книга 📖 → 📜
-new|njuː|новый|Новая книга: 📕✨
+pencil|pensl|карандаш|✏️
+pencil case|pensl keɪs|пенал|👝
+rubber|ˈrʌbə|резинка, ластик|🧽
+ruler|ˈru:lə|линейка|📏
+old|əʊld|старый|📜
+new|nju:|новый|✨
 paint|peɪnt|краска|🎨
 paintbrush|ˈpeɪntbrʌʃ|кисточка|🖌️
 picture|ˈpɪktʃə|картина|🖼️
-present|ˈpreznt|подарок|🎁
-grandma|ˈɡrænmɑː|бабушка|👵
-grandpa|ˈɡrænpɑː|дедушка|👴
+present|prɪˈzent|подарок|🎁
+grandma|ˈɡrænmɑ:|бабушка|👵
+grandpa|ˈɡrænpɑ:|дедушка|👴
 mum|mʌm|мама|👩
 dad|dæd|папа|👨
-sister|ˈsɪstə|сестра|Девочка рядом с братом
-brother|ˈbrʌðə|брат|Мальчик рядом с сестрой
-baby|ˈbeɪbi|малыш|👶
-family|ˈfæməli|семья|👨‍👩‍👧‍👦
-balloon|bəˈluːn|воздушный шар|🎈
-birthday cake|ˈbɜːθdeɪ keɪk|праздничный торт|🎂
-candle|ˈkændl|свеча|🕯️
+sister|ˈsɪstə|сестра|👧
+brother|ˈbrʌðə|брат|👦
+baby|ˈbeɪbɪ|малыш|👶
+family|ˈfæməlɪ|семья|👨‍👩‍👧‍👦
+balloon|bəˈlu:n|воздушный шар|🎈
+birthday cake|ˈbɜ:θdeɪ keɪk|праздничный торт|🎂
+candle|ˈkændəl|свеча|🕯️
 flowers|ˈflaʊəz|цветы|💐
-bird|bɜːd|птица|🐦
+bird|bɜ:d|птица|🐦
 fish|fɪʃ|рыба|🐟
-happy|ˈhæpi|счастливый|😄
+happy|ˈhæpɪ|счастливый|😄
 sad|sæd|грустный|😢
-hot|hɒt|жаркий|На улице жарко: ☀️🥵
-cold|kəʊld|холодный|На улице холодно: ❄️🥶
-hungry|ˈhʌŋɡri|голодный|Хочет есть: 😋🍎
-thirsty|ˈθɜːsti|хочет пить|Хочет пить: 🥤
+hot|hɒt|жаркий|☀️
+cold|kəʊld|холодный|❄️
+hungry|ˈhʌŋɡrɪ|голодный|🍽️
+thirsty|ˈθɜ:stɪ|жажда|🥤
 tired|taɪəd|уставший|😴
-angry|ˈæŋɡri|сердитый|😠
+angry|ˈæŋɡrɪ|сердитый|😠
 brown|braʊn|коричневый|🟫
 grey|ɡreɪ|серый|🩶
-hamster|ˈhæmstə|хомяк|🐹
+hamster|ˈhæmstə(r)|хомяк|🐹
 rabbit|ˈræbɪt|кролик|🐰
 scared|skeəd|испуганный|😨
 apple|ˈæpl|яблоко|🍎
-ball|bɔːl|мяч|⚽
-doll|dɒl|кукла|Кукла 🪆
+ball|bɔ:l|мячик|⚽
+doll|dɒl|кукла|🪆
 elephant|ˈelɪfənt|слон|🐘
 frog|frɒɡ|лягушка|🐸
 goat|ɡəʊt|коза|🐐
 hat|hæt|шляпа|👒
 insect|ˈɪnsekt|насекомое|🐞
-jug|dʒʌɡ|кувшин|Кувшин с водой
-key|kiː|ключ|🔑
+jug|dʒʌɡ|кувшин|🏺
+key|ki:|ключ|🔑
 lion|ˈlaɪən|лев|🦁
-monkey|ˈmʌŋki|обезьяна|🐒
+monkey|ˈmʌŋkɪ|обезьяна|🐒
 nut|nʌt|орех|🌰
-orange|ˈɒrɪndʒ|апельсин|🍊
+orange|ˈɔ:rɪndʒ|апельсин|🍊
 panda|ˈpændə|панда|🐼
-queen|kwiːn|королева|Королева в короне 👑
+queen|kwi:n|королева|👑
 robot|ˈrəʊbɒt|робот|🤖
 sun|sʌn|солнце|☀️
 tiger|ˈtaɪɡə|тигр|🐯
 umbrella|ʌmˈbrelə|зонтик|☂️
 van|væn|фургон|🚐
-worm|wɜːm|червяк|🪱
+worm|wɜ:m|червяк|🪱
 fox|fɒks|лиса|🦊
-yoghurt|ˈjɒɡət|йогурт|Йогурт в стаканчике
-zoo|zuː|зоопарк|Зоопарк: 🦁🐘🐼
-blue|bluː|синий, голубой|🔵
-red|red|красный|🔴
-yellow|ˈjeləʊ|жёлтый|🟡
-green|ɡriːn|зелёный|🟢
-black|blæk|чёрный|⚫
+yoghurt|ˈjɒɡət|йогурт|🥣
+zoo|zu:|зоопарк|🦁🐘
+blue|blu:|синий, голубой|🔵
+red|red|красный, рыжий|🔴
+yellow|ˈjeləʊ|желтый|🟡
+green|ɡri:n|зеленый|🟢
+black|blæk|черный|⚫
 white|waɪt|белый|⚪
-purple|ˈpɜːpl|фиолетовый|🟣
-cat|kæt|кошка|🐱
+purple|ˈpɜ:pəl|фиолетовый|🟣
+fat|fæt|толстый|↔️
+cat|kæt|кошка, кот|🐱
+mat|mæt|коврик|🟫
+this|ðɪs|этот|👉
+that|ðæt|тот|👈
 bed|bed|кровать|🛏️
 wind|wɪnd|ветер|💨
-spider|ˈspaɪdə|паук|🕷️
-horse|hɔːs|лошадь|🐴
-walk|wɔːk|гулять|🚶
-run|rʌn|бежать|🏃
+wig|wɪɡ|парик|💇
+fig|fɪɡ|финик|🫒
+kid|kɪd|ребенок|🧒
+catch|kætʃ|поймать|🤲
+climb|klaɪm|забраться|🧗
 jump|dʒʌmp|прыгать|🤸
+kick|kɪk|толчок|🦶
+ride a bike|raɪd baɪk|Кататься на велосипеде|🚴
+sing|sɪŋ|петь|🎤
 swim|swɪm|плавать|🏊
-sing|sɪŋ|петь|🎤🎵
+throw|θrəʊ|бросать|🏀
+hear|hɪr|слышать|👂
+horse|hɔ:s|лошадь|🐴
+run|rʌn|бежать|🏃
+see|si:|видеть|👀
+walk|wɔ:k|гулять|🚶
+fun|fʌn|веселье|🎉
+spider|ˈspaɪdər|паук|🕷️
 clap|klæp|хлопать|👏
-dance|dɑːns|танцевать|💃
+stamp|stæmp|топать|👣
+now|naʊ|сейчас|⏱️
+why|waɪ|почему|❓
+children|ˈtʃɪldrən|дети|🧒👧
+welcome|ˈwelkəm|добро пожаловать|🤗
+meet|mi:t|встречать|🤝
+listen|ˈlɪsn|слушать|👂
+paint|peɪnt|Нарисуй|🎨
+say|seɪ|сказать|💬
+match|mætʃ|сопоставь|🔗
+be|bi:|будь|⭐
+count|kaʊnt|посчитай|🔢
+circle|ˈsɜ:rkl|обведи|⭕
+correct|kəˈrekt|правильный|✅
+letter|ˈletə|буква|🔤
+check|tʃek|проверь|🔎
+vocabulary|vəˈkæbjəlerɪ|словарь|📚
+number|ˈnʌmbə|пронумеруй|🔢
+find|faɪnd|найди|🔍
+word|wɜ:d|слово|💬
+act out|ækt aʊt|разыграй|🎭
+read|ri:d|прочитай|📖
+who|hu:|кто|❓
+again|əˈɡen|снова, опять|🔄
+look|lʊk|посмотри|👀
+work|wɜ:k|работа|💼
+pair|peə|пара|👫
+play|pleɪ|играть|🎮
+game|ɡeɪm|игра|🎲
+memory|ˈmemərɪ|воспоминание|💭
+where|weə|откуда, где|📍
+your|jər|твой|👉
+favorite|ˈfeɪvərɪt|любимый|❤️
+draw|drɔ:|рисовать|✏️
+write|raɪt|запиши|📝
+complete|kəmˈpli:t|заверши|🏁
+chant|tʃɑ:nt|пропой|🎶
+ask|ɑ:sk|спрашивать|🙋
+answer|ˈɑ:nsə|ответ|💬
+log|lɔ:ɡ|бревно|🪵
+jog|dʒɒɡ|подталкивать|🏃
+bog|bɑ:ɡ|болото|🟩
+question mark|ˈkwestʃən mɑ:k|знак вопроса|❓
+full stop|fʊl stɑ:p|точка|.
 bike|baɪk|велосипед|🚲
 boat|bəʊt|лодка|🚤
-car|kɑː|машина|🚗
+car|kɑ:|машина|🚗
 kite|kaɪt|воздушный змей|🪁
-tree|triː|дерево|🌳
-water|ˈwɔːtə|вода|💧
-eye|aɪ|глаз|👁️
-ear|ɪə|ухо|👂
-arm|ɑːm|рука|💪
-foot|fʊt|ступня|🦶
-tail|teɪl|хвост|Хвост собаки 🐕
-tortoise|ˈtɔːtəs|черепаха|🐢
-sleep|sliːp|спать|😴
-forest|ˈfɒrɪst|лес|🌲🌳🌲🌳🌲
-ice|aɪs|лёд|🧊
+sandpit|ˈsændpɪt|песочница|🪣
+seesaw|ˈsi:sɔ:|качели|⚖️
+slide|slaɪd|горка|🛝
+swing|swɪŋ|качели|🎠
+choose|tʃu:z|выбери|☝️
+object|ˈɒbdʒekt|предмет|📦
+tick|tɪk|галочка|✅
+cross|krɔ:s|крестик|❌
+I|aɪ|я|🙋
+you|ju|ты|👉
+he|hɪ|он|👦
+she|ʃɪ|она|👧
+it|ɪt|оно|📦
+we|wɪ|мы|👫
+you|ju|вы|👥
+they|ðeɪ|они|👥
+my|maɪ|мой|🙋
+your|jʊr|твой|👉
+his|hɪz|его|👦
+her|hɜ:r|её|👧
+under|ˈʌndər|под|⬇️
+on|ɑ:n|на|⬆️
+next to|nekst|рядом с|↔️
+in|ɪn|в|📦
+winter|ˈwɪntə|зима|❄️
+sleep|sli:p|спать|😴
+forest|ˈfɒrɪst|лес|🌲🌳🌲
+ice|aɪs|лед|🧊
 skate|skeɪt|кататься на коньках|⛸️
-sled|sled|санки|🛷`;
-const words=raw.split('\n').map(s=>s.split('|'));const $=id=>document.getElementById(id);let round=[],index=0,answers=[],answered=false;
-function show(id){['welcome','select','game','result'].forEach(s=>$(s).classList.toggle('hidden',s!==id))}
-function begin(n){round=[...words];for(let i=round.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[round[i],round[j]]=[round[j],round[i]]}round=round.slice(0,n);index=0;answers=[];show('game');render()}
-function render(){answered=false;let w=round[index];$('word').textContent=w[0];$('ipa').textContent='/'+w[1]+'/';$('image').textContent='';$('image').className='picture hidden';$('translation').textContent='';$('translation').classList.add('hidden');$('answerButtons').classList.remove('hidden');$('continueButtons').classList.add('hidden');$('counter').textContent=`Слово ${index+1} из ${round.length}`;$('fill').style.width=index/round.length*100+'%'}
-function answer(known){if(answered)return;answered=true;answers.push({word:round[index],known});let w=round[index];$('image').textContent=w[3];$('image').className='picture'+(w[3].length>16?' text-picture':'');$('translation').textContent=w[2];$('translation').classList.remove('hidden');$('answerButtons').classList.add('hidden');$('continueButtons').classList.remove('hidden');$('next').textContent=index===round.length-1?'Посмотреть результат →':'Следующее слово →'}
-function next(){if(!answered)return;if(++index<round.length)render();else results()}
-function results(){let wrong=answers.filter(a=>!a.known),correct=answers.length-wrong.length;$('known').textContent=correct;$('unknown').textContent=wrong.length;let perfect=!wrong.length;$('title').textContent=perfect?'Ты — молодец!':'Ты отлично постарался!';$('badge').textContent=perfect?'🏆🎉':'🌟💪';$('message').textContent=perfect?'Ты знаешь все слова в этом раунде!':'Повтори эти слова — и в следующий раз получится ещё лучше!';$('list').replaceChildren();wrong.forEach(a=>{let li=document.createElement('li');li.textContent=`${a.word[0]} — ${a.word[2]}`;$('list').append(li)});$('review').classList.toggle('hidden',perfect);show('result');if(perfect)fireworks()}
-function fireworks(){let box=$('fireworks');for(let b=0;b<6;b++)setTimeout(()=>{let x=10+Math.random()*80,y=12+Math.random()*50;for(let i=0;i<22;i++){let dot=document.createElement('span'),angle=i*2*Math.PI/22,d=60+Math.random()*110;dot.className='spark';dot.style.left=x+'vw';dot.style.top=y+'vh';dot.style.background=['#ff628c','#ffd847','#59d89e','#7854ed'][i%4];dot.style.setProperty('--x',Math.cos(angle)*d+'px');dot.style.setProperty('--y',Math.sin(angle)*d+'px');box.append(dot);setTimeout(()=>dot.remove(),1350)}},b*220)}
-$('start').onclick=()=>show('select');document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>begin(+b.dataset.size));$('yes').onclick=()=>answer(true);$('no').onclick=()=>answer(false);$('next').onclick=next;$('again').onclick=()=>show('select');
-</script></body></html>
+sled|sled|санки|🛷
+tree|tri:|дерево|🌳
+feeling|ˈfi:lɪŋ|чувство|💭
+ride|raɪd|кататься|🚴
+activity|ækˈtɪvɪtɪ|активность|🏃
+shoes|ʃu:z|обувь|👟
+shop|ʃɒp|магазин|🏪
+help|help|помощь|🆘
+paper|ˈpeɪpə|бумага|📄
+water|ˈwɔ:tə|вода|💧
+leg|leɡ|нога|🦵
+eye|aɪ|глаз|👁️
+ear|ɪr|ухо|👂
+arm|ɑ:m|рука|💪
+foot|fʊt|нога|🦶
+tail|teɪl|хвост|🐕
+tortoise|ˈtɔ:rtəs|черепаха|🐢
+tweet|twi:t|чирикать|🐦
+hop|hɒp|прыгать|🐰
+dance|dɑ:ns|танцевать|💃
+beat|bi:t|удар|🥁
+wait|weɪt|ждать|⏳
+stop|stɒp|остановка|🛑
+make|meɪk|делать|🛠️
+some|sʌm|несколько, некоторый|🔢
+sound|saʊnd|звук|🔊
+round|raʊnd|круглый|⭕
+one|wʌn|один|1️⃣
+two|tu:|два|2️⃣
+three|θri:|три|3️⃣
+four|fɔ:r|четыре|4️⃣
+five|faɪv|пять|5️⃣
+six|sɪks|шесть|6️⃣
+seven|ˈsevn|семь|7️⃣
+eight|eɪt|восемь|8️⃣
+nine|naɪn|девять|9️⃣
+ten|ten|десять|🔟
+eleven|ɪˈlevn|одиннадцать|1️⃣1️⃣
+twelve|twelv|двенадцать|1️⃣2️⃣
+thirteen|ˌθɜ:rˈti:n|тринадцать|1️⃣3️⃣
+fourteen|ˌfɔ:rˈti:n|четырнадцать|1️⃣4️⃣
+fifteen|ˌfɪfˈti:n|пятнадцать|1️⃣5️⃣
+sixteen|ˌsɪksˈti:n|шестнадцать|1️⃣6️⃣
+seventeen|ˌsevnˈti:n|семнадцать|1️⃣7️⃣
+eighteen|ˌeɪˈti:n|восемнадцать|1️⃣8️⃣
+nineteen|ˌnaɪnˈti:n|девятнадцать|1️⃣9️⃣
+twenty|ˈtwentɪ|двадцать|2️⃣0️⃣
+thirty||тридцать|3️⃣0️⃣
+forty||сорок|4️⃣0️⃣
+fifty||пятьдесят|5️⃣0️⃣
+sixty||шестьдесят|6️⃣0️⃣
+seventy||семьдесят|7️⃣0️⃣
+eighty||восемьдесят|8️⃣0️⃣
+ninety||девяносто|9️⃣0️⃣
+a hundred||сто|💯
+I’m …||Я …|🙋
+my name is …||Меня зовут …|👤
+I’ve got …||У меня есть …|🎒
+I can …||Я могу …|💪
+I like …||Мне нравится …|❤️
+beginning||начинаются|🏁
+wear||носить (про одежду)|👕
+sentence||предложение|📝
+about||о|💬
+Egypt||Египет|🇪🇬
+India||Индия|🇮🇳
+China||Китай|🇨🇳
+Australia||Австралия|🇦🇺
+bear||медведь|🐻
+camel||верблюд|🐪
+crocodile||крокодил|🐊
+kangaroo||кенгуру|🦘
+these||эти|👉
+which||который|❓
+more than …||больше чем …|➕
+country||страна|🌍
+there are some …||тут есть несколько …|🔢
+there are’t any …||здесь нет ни одного/одной …|0️⃣
+i don’t know||я не знаю|🤷
+again||снова|🔄`;
+const words = raw.split('\n').map(line => { const [en,ipa,ru,pic] = line.split('|'); return {en,ipa,ru,pic}; });
+const $=id=>document.getElementById(id);let round=[],index=0,answers=[],locked=false;
+function show(id){['welcome','select','game','result'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function startRound(n){round=shuffle(words).slice(0,n);index=0;answers=[];show('game');render()}
+function render(){locked=false;const w=round[index];$('word').textContent=w.en;$('ipa').textContent=w.ipa?'/'+w.ipa+'/':'';$('illustration').textContent='';$('illustration').classList.add('hidden');$('answer').textContent='';$('answer').classList.add('hidden');$('answers').classList.remove('hidden');$('continue').classList.add('hidden');$('counter').textContent=`Слово ${index+1} из ${round.length}`;$('fill').style.width=(index/round.length*100)+'%'}
+function reply(known){if(locked)return;locked=true;const w=round[index];answers.push({w,known});$('illustration').textContent=w.pic;$('illustration').classList.remove('hidden');$('answer').textContent=w.ru;$('answer').classList.remove('hidden');$('answers').classList.add('hidden');$('continue').classList.remove('hidden');$('next').textContent=index===round.length-1?'Посмотреть результат →':'Следующее слово →'}
+function next(){if(!locked)return;if(++index<round.length)render();else finish()}
+function finish(){const missed=answers.filter(x=>!x.known),known=answers.length-missed.length,perfect=!missed.length;$('knownCount').textContent=known;$('unknownCount').textContent=missed.length;$('badge').textContent=perfect?'🎆🏆':'🌟💪';$('title').textContent=perfect?'Ты - молодец!':'Ты отлично постался!';$('message').textContent=perfect?'Ты знаешь все слова в этом раунде!':'Повтори слова ниже — и в следующий раз получится ещё лучше!';$('reviewList').replaceChildren();missed.forEach(x=>{const li=document.createElement('li');li.textContent=`${x.w.en} — ${x.w.ru}`;$('reviewList').appendChild(li)});$('review').classList.toggle('hidden',perfect);show('result');if(perfect)fireworks()}
+function fireworks(){const host=$('fireworks');for(let b=0;b<6;b++)setTimeout(()=>{const x=10+Math.random()*80,y=10+Math.random()*55;for(let i=0;i<22;i++){const e=document.createElement('i'),a=i*Math.PI*2/22,d=55+Math.random()*120;e.className='spark';e.style.left=x+'vw';e.style.top=y+'vh';e.style.background=['#ff6187','#ffce4a','#50d79d','#7657eb'][i%4];e.style.setProperty('--x',Math.cos(a)*d+'px');e.style.setProperty('--y',Math.sin(a)*d+'px');host.append(e);setTimeout(()=>e.remove(),1300)}},b*220)}
+$('start').onclick=()=>show('select');document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>startRound(+b.dataset.size));$('yes').onclick=()=>reply(true);$('no').onclick=()=>reply(false);$('next').onclick=next;$('again').onclick=()=>show('select');
+</script>
+</body>
+</html>
